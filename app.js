@@ -1,4 +1,14 @@
+var bcrypt = require('bcrypt');
+
+var knex = require('knex')({
+    client: 'pg',
+    connection: process.env.DATABASE_URL
+});
+var bookshelf = require('bookshelf')(knex);
+
 var express = require('express');
+// var session = require('express-session'),
+//     sessionStore = new session.MemoryStore();
 var path = require('path');
 var favicon = require('serve-favicon');
 var logger = require('morgan');
@@ -10,9 +20,16 @@ var users = require('./routes/users');
 
 var app = express();
 
+
+// set up models
+var User = require('./models/user')(bookshelf);
+
+// TODO: migrations
+require('./resetdb')(knex, User);
+
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'ejs');
+app.set('view engine', 'jade');
 
 // uncomment after placing your favicon in /public
 //app.use(favicon(__dirname + '/public/favicon.ico'));
