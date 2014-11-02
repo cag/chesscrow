@@ -51,11 +51,11 @@ io.on('connection', function(socket) {
             if(user) {
                 debug('user ' + user.id + ' (' + user.get('username') + ') connected');
                 activeUsers[user.id] = user.get('username');
-                socket.emit('active users update', activeUsers);
+                io.emit('active users update', activeUsers);
 
                 socket.on('disconnect', function() {
                     delete activeUsers[user.id];
-                    socket.emit('active users update', activeUsers);
+                    io.emit('active users update', activeUsers);
                     debug('user ' + user.id + ' (' + user.get('username') + ') disconnected');
                 });
 
