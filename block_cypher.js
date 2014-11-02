@@ -50,4 +50,61 @@ function signTransaction(newtx, source)
     // return { "tx": txb.tx.toHex() };
 }
 
-module.exports = signTransaction;
+var https = require('https');
+
+var API_TOKEN = 'a52dc8356e778d3ea8eda285dd83f01b';
+var COIN_NETWORK = '/v1/bcy/test';
+
+function buildRequestOptions(action, method)
+{
+    return {
+        hostname: 'api.blockcypher.com',
+        path: COIN_NETWORK + action + '?token=' + API_TOKEN,
+        method: method
+    };
+}
+
+function makeJSONRPC(request_type, options, data, callback)
+{
+    var req = https.request(options, function(res) {
+        if(res.statusCode < 200 || res.statusCode >= 300) {
+            callback(request_type + " request returned status " + res.statusCode);
+            return;
+        }
+        // res.setEncoding('utf8');
+        res.on('data', function (chunk) {
+            callback(null, JSON.parse(chunk));
+        });
+    });
+
+    req.on('error', function(e) {
+        callback('problem with ' + request_type + ' request: ' + e.message);
+    });
+
+    if(data) req.write(JSON.stringify(data));
+
+    req.end();
+}
+
+// TODO: Make this local I guess
+function createAddress(callback)
+{
+    makeJSONRPC('address', buildRequestOptions('/addrs', 'POST'), null, callback);
+}
+
+function createTransaction(tx_desc, callback)
+{
+    makeJSONRPC('new transaction', buildRequestOptions('/txs/new', 'POST'), tx_desc, callback);
+}
+
+function sendTransaction(signed_tx, callback)
+{
+    makeJSONRPC('send transaction', buildRequestOptions('/txs/send', 'POST'), signed_tx, callback);
+}
+
+module.exports = {
+    'signTransaction': signTransaction,
+    'createAddress': createAddress,
+    'createTransaction': createTransaction,
+    'sendTransaction': sendTransaction
+};
