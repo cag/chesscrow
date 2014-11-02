@@ -8,11 +8,11 @@ block header
     $(function() {
       var socket = io();
       socket.on('active users update', function(msg) {
-        //- console.log(msg);
+        console.log(msg);
         var usernames = [];
         for (var id in msg) {
           if(msg.hasOwnProperty(id)) {
-            usernames.push(msg[id]);
+            usernames.push(msg[id].username);
           }
         }
         usernames.sort();
