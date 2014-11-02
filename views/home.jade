@@ -7,31 +7,47 @@ block header
   script.
     $(function() {
       var socket = io();
-      socket.on('active users update', function(msg) {
-        console.log(msg);
-        var usernames = [];
-        for (var id in msg) {
-          if(msg.hasOwnProperty(id)) {
-            usernames.push(msg[id].username);
+      socket.on('linked session to user', function(init_msg) {
+        console.log(init_msg);
+        var self_id = init_msg.user_id;
+
+        socket.on('active users update', function(msg) {
+          console.log(msg);
+          var users = [];
+          for (var id in msg) {
+            if(msg.hasOwnProperty(id)) {
+              users.push({ 'id': id, 'name': msg[id].username });
+            }
           }
-        }
-        usernames.sort();
-        console.log(usernames);
+          users.sort(function(a, b) {
+            if (a.username < b.username)
+               return -1;
+            if (a.username > b.username)
+              return 1;
+            return a.id - b.id;
+          });
+          console.log(users);
 
-        var activeUsersList = $('ul#activeusers').empty();
+          var activeUsersList = $('ul#activeusers').empty();
 
-        $.each(usernames, function(i) {
-          var li = $('<li/>')
-            .addClass('username')
-            .appendTo(activeUsersList);
-          var userLink = $('<a/>')
-            .addClass('userlink')
-            .text(usernames[i])
-            .appendTo(li);
+          $.each(users, function(i) {
+            var user = users[i];
+            var li = $('<li/>')
+              .appendTo(activeUsersList);
+            var userLink = $('<button/>')
+              .addClass('userbutton')
+              .text(user.name)
+              .appendTo(li)
+              .click(function() {
+                console.log(user.id);
+              });
+          });
         });
+        socket.emit('user activated', true);
       });
     });
 
 block content
   h1= title
   ul#activeusers.userlist
+

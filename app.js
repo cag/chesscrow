@@ -1,4 +1,7 @@
 var bcrypt = require('bcrypt');
+var chessjs = require('chess.js');
+var blockCypher = require('./block_cypher');
+
 
 var knex = require('knex')({
     client: 'pg',
@@ -18,7 +21,7 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 
 // set up models
-var Game = require('./models/game')(bookshelf),
+var Game = require('./models/game')(bookshelf, chessjs, blockCypher),
     User = require('./models/user')(bookshelf, Game);
 
 // set up routes
@@ -30,7 +33,7 @@ var app = express();
 // register models with app
 app.set('user model', User)
 // TODO: migrations
-require('./resetdb')(knex, User);
+require('./resetdb')(knex, User, Game);
 
 // middleware setup
 passport.use(new LocalStrategy(

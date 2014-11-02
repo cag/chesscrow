@@ -72,29 +72,72 @@ io.on('connection', function(socket) {
     sessionFromCookie(cookie, function(err, s) {
         session = new Session(hs, s);
 
-        new User({ id: session.passport.user }).fetch().then(function(user) {
+        new User({ id: session.passport.user }).fetch({
+            withRelated: ['games_as_white', 'games_as_black']
+        }).then(function(user) {
             if(user) {
-                debug('user ' + user.id + ' (' + user.get('username') + ') connected');
+                var games_as_white = user.related('games_as_white'),
+                    games_as_black = user.related('games_as_black');
 
-                if(!(user.id in activeUsers)) {
-                    activeUsers[user.id] = { 'username': user.get('username'), 'activeCookies': {} };
+                function registerUserInGameRoom(game) {
+                    socket.join('game ' + game.id);
                 }
-                activeUsers[user.id].activeCookies[cookie] = Date.now();
-                
-                io.emit('active users update', activeUsers);
 
-                socket.on('ping', function() {
-                    activeUsers[user.id].activeCookies[cookie] = Date.now();
-                });
+                games_as_white.each(registerUserInGameRoom);
+                games_as_black.each(registerUserInGameRoom);
 
-                socket.on('disconnect', function() {
-                    delete activeUsers[user.id].activeCookies[cookie];
-                    if(isEmpty(activeUsers[user.id].activeCookies)) {
-                        delete activeUsers[user.id];
+                function filterGameFields(game, is_white) {
+                    var escrow_obj = game.get(is_white ? 'white_escrow' : 'black_escrow'),
+                        wager_set = game.get('wager_set'),
+                        ret = {
+                            id: game.id,
+                            white_id: game.get('white_id'),
+                            black_id: game.get('black_id'),
+                            white_wager: game.get('white_wager'),
+                            black_wager: game.get('black_wager'),
+                            pgn: game.get('pgn'),
+                            wager_set: wager_set,
+                            active: game.get('active'),
+                            is_white: is_white
+                        };
+                    if(wager_set) {
+                        ret.escrow_addr = escrow_obj.address;
                     }
+                    return ret;
+                }
+
+                var all_games = games_as_white.map(function(game) { return filterGameFields(game, true); }).concat(
+                    games_as_black.map(function(game) { return filterGameFields(game, false); }));
+                all_games.sort(function(a, b) { return a.id - b.id; });
+
+                socket.emit('linked session to user', {
+                    'user_id': user.id,
+                    'games': all_games,
+                });
+                socket.on('user activated', function() {
+
+                    if(!(user.id in activeUsers)) {
+                        activeUsers[user.id] = { 'username': user.get('username'), 'activeCookies': {} };
+                    }
+                    activeUsers[user.id].activeCookies[cookie] = Date.now();
+                    debug('user ' + user.id + ' (' + user.get('username') + ') connected');
 
                     io.emit('active users update', activeUsers);
-                    debug('user ' + user.id + ' (' + user.get('username') + ') disconnected');
+
+                    socket.on('ping', function() {
+                        activeUsers[user.id].activeCookies[cookie] = Date.now();
+                    });
+
+                    socket.on('disconnect', function() {
+                        delete activeUsers[user.id].activeCookies[cookie];
+                        if(isEmpty(activeUsers[user.id].activeCookies)) {
+                            delete activeUsers[user.id];
+                        }
+
+                        io.emit('active users update', activeUsers);
+                        debug('user ' + user.id + ' (' + user.get('username') + ') disconnected');
+                    });
+
                 });
 
             } else debug("Could not find user " + session.passport.user);

@@ -86,10 +86,16 @@ function makeJSONRPC(request_type, options, data, callback)
     req.end();
 }
 
-// TODO: Make this local I guess
+// TODO: Make this local for security
 function createAddress(callback)
 {
     makeJSONRPC('address', buildRequestOptions('/addrs', 'POST'), null, callback);
+}
+
+function fundAddress(callback)
+{
+    if(COIN_NETWORK !== '/v1/bcy/test') callback('cannot fund addresses on network ' + COIN_NETWORK);
+    else makeJSONRPC('fund address', buildRequestOptions('/faucet', 'POST'), null, callback);
 }
 
 function createTransaction(tx_desc, callback)
