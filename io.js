@@ -32,8 +32,9 @@ module.exports = function(http, app) {
 
 var io = require('socket.io')(http),
     Session = require('express-session').Session,
-    sessionStore = app.get('session store');
-    User = app.get('user model');
+    sessionStore = app.get('session store'),
+    User = app.get('user model'),
+    Game = app.get('game model');
 
 function sessionFromCookie(ck, callback) {
     var sessionID;
@@ -96,10 +97,13 @@ io.on('connection', function(socket) {
                             white_wager: game.get('white_wager'),
                             black_wager: game.get('black_wager'),
                             pgn: game.get('pgn'),
+                            white_wager_lock: game.get('white_wager_lock'),
+                            black_wager_lock: game.get('black_wager_lock'),
                             wager_set: wager_set,
                             active: game.get('active'),
                             is_white: is_white
                         };
+
                     if(wager_set) {
                         ret.escrow_addr = escrow_obj.address;
                     }
@@ -138,6 +142,48 @@ io.on('connection', function(socket) {
                         debug('user ' + user.id + ' (' + user.get('username') + ') disconnected');
                     });
 
+                });
+
+                socket.on('game control', function(msg) {
+                    debug('game control: ' + JSON.stringify(msg));
+
+                    new Game({ id: msg.game_id }).fetch().then(function(game) {
+                        if(game) {
+                            var channel = io.to('game ' + msg.game_id);
+                            if(!game.get('wager_set')) {
+                                if(game.get('white_id') === user.id) {
+                                    if(msg.type === 'update wager') {
+                                        if(!game.get('white_wager_lock')) {
+                                            game.save({ white_wager: msg.new_val }).then(function() {
+                                                channel.emit('update game div', { game_id: game.id, white_wager: msg.new_val });
+                                            });
+                                        }
+                                    } else if(msg.type === 'wager lock toggle') {
+                                        game.save({ white_wager_lock: !game.get('white_wager_lock') }).then(function() {
+                                            channel.emit('update game div', { game_id: game.id, white_wager_lock: game.get('white_wager_lock') });
+                                        });
+                                    }
+                                } else if(game.get('black_id') === user.id) {
+                                    if(msg.type === 'update wager') {
+                                        if(!game.get('black_wager_lock')) {
+                                            game.save({ black_wager: msg.new_val }).then(function() {
+                                                channel.emit('update game div', { game_id: game.id, black_wager: msg.new_val });
+                                            });
+                                        }
+                                    } else if(msg.type === 'wager lock toggle') {
+                                        game.save({ black_wager_lock: !game.get('black_wager_lock') }).then(function() {
+                                            channel.emit('update game div', { game_id: game.id, black_wager_lock: game.get('black_wager_lock') });
+                                        });
+                                    }
+
+                                } else if(msg.type === 'set wager' && game.get('white_wager_lock') && game.get('black_wager_lock')) {
+                                    game.save({ wager_set: true }).then(function() {
+                                        channel.emit('update game div', { game_id: game.id, wager_set: true });
+                                    });
+                                }
+                            }
+                        }
+                    });
                 });
 
             } else debug("Could not find user " + session.passport.user);

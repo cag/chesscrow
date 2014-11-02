@@ -17,10 +17,10 @@ module.exports = function(bookshelf, chessjs, blockCypher) {
     }, {
 
         create: function(white_id, black_id, callback) {
-            new User({ id: white_id }).fetch().then(function(white) {
-                if(white) {
-            new User({ id: black_id }).fetch().then(function(black) {
-                if(black) {
+            // new User({ id: white_id }).fetch().then(function(white) {
+            //     if(white) {
+            // new User({ id: black_id }).fetch().then(function(black) {
+            //     if(black) {
             blockCypher.createAddress(function(err, white_escrow) {
                 if(err && callback) callback('error while creating white escrow: ' + err);
                 else {
@@ -35,6 +35,8 @@ module.exports = function(bookshelf, chessjs, blockCypher) {
                         white_escrow: white_escrow,
                         black_escrow: black_escrow,
                         pgn: chessjs.Chess().pgn(),
+                        white_wager_lock: false,
+                        black_wager_lock: false,
                         wager_set: false,
                         active: false })
                     .save()
@@ -45,14 +47,14 @@ module.exports = function(bookshelf, chessjs, blockCypher) {
             });
                 }
             });
-                } else {
-                    if(callback) callback('could not find user ' + black_id + ' for black');
-                }
-            });
-                } else {
-                    if(callback) callback('could not find user ' + white_id + ' for white');
-                }
-            });
+            //     } else {
+            //         if(callback) callback('could not find user ' + black_id + ' for black');
+            //     }
+            // });
+            //     } else {
+            //         if(callback) callback('could not find user ' + white_id + ' for white');
+            //     }
+            // });
         }
 
     });

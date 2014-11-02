@@ -9,7 +9,78 @@ block header
       var socket = io();
       socket.on('linked session to user', function(init_msg) {
         console.log(init_msg);
-        var self_id = init_msg.user_id;
+
+        function refreshGameDiv(game_div, game) {
+          game_div.empty();
+
+          var title_div = $('<div/>').addClass('title-div').appendTo(game_div),
+              white_span = $('<span/>').addClass('white-span').text(game.white_id).appendTo(title_div),
+              vs_span = $('<span/>').addClass('vs-span').text(' vs ').appendTo(title_div),
+              black_span = $('<span/>').addClass('black-span').text(game.black_id).appendTo(title_div);
+
+          var wager_div = $('<div/>').addClass('wager-div').appendTo(game_div),
+              white_wager_div = $('<div/>').addClass('white-wager-div').appendTo(wager_div),
+              black_wager_div = $('<div/>').addClass('black-wager-div').appendTo(wager_div),
+              white_wager_label = $('<span/>').addClass('white-wager-label').text('white: ').appendTo(white_wager_div),
+              black_wager_label = $('<span/>').addClass('black-wager-label').text('black: ').appendTo(black_wager_div);
+
+          if(game.wager_set) {
+            var white_wager = $('<span/>').addClass('white-wager').text(game.white_wager).appendTo(white_wager_div),
+                black_wager = $('<span/>').addClass('black-wager').text(game.black_wager).appendTo(black_wager_div);
+
+            if(game.active) {
+
+            } else {
+              var escrow_addr_div = $('<div/>').addClass('escrow-addr-div').appendTo(wager_div),
+                  escrow_addr_label = $('<span/>').addClass('escrow-addr-label').text('escrow address: ').appendTo(escrow_addr_div),
+                  escrow_addr = $('<span/>').addClass('escrow-addr').text(game.escrow_addr).appendTo(escrow_addr_div);
+            }
+          } else {
+            var white_wager, black_wager;
+            if(game.is_white) {
+              white_wager = $('<input type="text"/>').addClass('white-wager-edit').val(game.white_wager).appendTo(white_wager_div);
+              black_wager = $('<span/>').addClass('black-wager').text(game.black_wager).appendTo(black_wager_div);
+            } else {
+              white_wager = $('<span/>').addClass('white-wager').text(game.white_wager).appendTo(white_wager_div);
+              black_wager = $('<input type="text"/>').addClass('black-wager-edit').val(game.black_wager).appendTo(black_wager_div);
+            }
+
+            var wager_controls_div = $('<div/>').addClass('wager-controls-div').appendTo(wager_div),
+                wager_control_update = $('<button/>').addClass('wager-control-update').text('update wager').appendTo(wager_controls_div),
+                wager_control_lock = $('<button/>').addClass('wager-control-lock').text('wager lock toggle').appendTo(wager_controls_div),
+                wager_control_set = $('<button/>').addClass('wager-control-set').text('set wager').appendTo(wager_controls_div);
+
+            wager_control_update.click(function() {
+              socket.emit('game control', {
+                game_id: game.id,
+                type: 'update wager',
+                new_val: game.is_white ? white_wager.val() : black_wager.val() });
+            });
+
+            wager_control_lock.click(function() {
+              socket.emit('game control', {
+                game_id: game.id,
+                type: 'wager lock toggle' });
+            });
+
+            wager_control_set.click(function() {
+              socket.emit('game control', {
+                game_id: game.id,
+                type: 'set wager' });
+            });
+          }
+        }
+
+        var self_id = init_msg.user_id,
+          games = init_msg.games,
+          game_divs = {};
+          $.each(games, function(i) {
+            var game = games[i];
+            var game_div = $('<div/>').addClass('game-div');
+            refreshGameDiv(game_div, game);
+            game_div.appendTo($('#games'));
+            game_divs[game.id] = game_div;
+          });
 
         socket.on('active users update', function(msg) {
           console.log(msg);
@@ -43,6 +114,11 @@ block header
               });
           });
         });
+
+        socket.on('update game div', function(msg) {
+          console.log(msg);
+        });
+
         socket.emit('user activated', true);
       });
     });
@@ -50,4 +126,5 @@ block header
 block content
   h1= title
   ul#activeusers.userlist
+  #games
 

@@ -31,7 +31,8 @@ var users = require('./routes/users');
 var app = express();
 
 // register models with app
-app.set('user model', User)
+app.set('user model', User);
+app.set('game model', Game);
 // TODO: migrations
 require('./resetdb')(knex, User, Game);
 
