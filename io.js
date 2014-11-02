@@ -38,6 +38,8 @@ io.set('authorization', function(data, accept) {
     });
 });
 
+var activeUsers = {};
+
 io.on('connection', function(socket) {
     var hs = socket.handshake;
     // debug('handshake: ' + JSON.stringify(hs));
@@ -48,8 +50,12 @@ io.on('connection', function(socket) {
         new User({ id: session.passport.user }).fetch().then(function(user) {
             if(user) {
                 debug('user ' + user.id + ' (' + user.get('username') + ') connected');
+                activeUsers[user.id] = user.get('username');
+                socket.emit('active users update', activeUsers);
 
-                socket.on('disconnect', function(){
+                socket.on('disconnect', function() {
+                    delete activeUsers[user.id];
+                    socket.emit('active users update', activeUsers);
                     debug('user ' + user.id + ' (' + user.get('username') + ') disconnected');
                 });
 

@@ -7,8 +7,31 @@ block header
   script.
     $(function() {
       var socket = io();
-      
+      socket.on('active users update', function(msg) {
+        //- console.log(msg);
+        var usernames = [];
+        for (var id in msg) {
+          if(msg.hasOwnProperty(id)) {
+            usernames.push(msg[id]);
+          }
+        }
+        usernames.sort();
+        console.log(usernames);
+
+        var activeUsersList = $('ul#activeusers').empty();
+
+        $.each(usernames, function(i) {
+          var li = $('<li/>')
+            .addClass('username')
+            .appendTo(activeUsersList);
+          var userLink = $('<a/>')
+            .addClass('userlink')
+            .text(usernames[i])
+            .appendTo(li);
+        });
+      });
     });
 
 block content
   h1= title
+  ul#activeusers.userlist
