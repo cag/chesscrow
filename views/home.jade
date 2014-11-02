@@ -1,3 +1,14 @@
 extends layout
+
+block header
+  script(src="/socket.io/socket.io.js")
+  script(src="http://code.jquery.com/jquery-2.1.1.js")
+  script(src="/javascripts/chess.js")
+  script.
+    $(function() {
+      var socket = io();
+      
+    });
+
 block content
   h1= title

@@ -18,7 +18,8 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 
 // set up models
-var User = require('./models/user')(bookshelf);
+var Game = require('./models/game')(bookshelf),
+    User = require('./models/user')(bookshelf, Game);
 
 // set up routes
 var routes = require('./routes/index')(User);
@@ -26,6 +27,8 @@ var users = require('./routes/users');
 
 var app = express();
 
+// register models with app
+app.set('user model', User)
 // TODO: migrations
 require('./resetdb')(knex, User);
 

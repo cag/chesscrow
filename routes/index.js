@@ -1,7 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var passport = require('passport');
-var debug = require('debug')('smscoin');
+var debug = require('debug')('chesscrow');
 
 module.exports = function(User) {
 

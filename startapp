@@ -1,2 +1,0 @@
-export DATABASE_URL='postgres://smscoin@localhost:5432/smscoin'
-foreman start web
