@@ -68,7 +68,7 @@ var activeUsers = {};
 io.on('connection', function(socket) {
     var hs = socket.handshake,
         cookie = hs.headers.cookie;
-    debug('handshake: ' + JSON.stringify(hs));
+    // debug('handshake: ' + JSON.stringify(hs));
 
     sessionFromCookie(cookie, function(err, s) {
         session = new Session(hs, s);
@@ -114,13 +114,14 @@ io.on('connection', function(socket) {
                 }
 
                 (function() {
-                    var all_games = games_as_white.map(function(game) { return filterGameFields(game, true); }).concat(
-                        games_as_black.map(function(game) { return filterGameFields(game, false); }));
-                    all_games.sort(function(a, b) { return a.id - b.id; });
+                    var all_active_games =
+                        games_as_white.where({ active: true }).map(function(game) { return filterGameFields(game, true); }).concat(
+                        games_as_black.where({ active: true }).map(function(game) { return filterGameFields(game, false); }));
+                    all_active_games.sort(function(a, b) { return a.id - b.id; });
 
                     socket.emit('linked session to user', {
                         'user_id': user.id,
-                        'games': all_games,
+                        'games': all_active_games,
                     });
                 })();
 

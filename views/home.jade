@@ -29,8 +29,10 @@ block header
                   .text('waiting for other player...').appendTo(wager_div);
           } else {
             var wager_controls_div = $('<div/>').addClass('wager-controls-div').appendTo(wager_div),
-                wager_control_accept = $('<button/>').addClass('wager-control-accept').text('accept wager').appendTo(wager_controls_div),
-                wager_control_reject = $('<button/>').addClass('wager-control-reject').text('reject wager').appendTo(wager_controls_div);
+                wager_control_accept = $('<button/>').addClass('wager-control-accept')
+                  .text('accept wager').appendTo(wager_controls_div),
+                wager_control_reject = $('<button/>').addClass('wager-control-reject')
+                  .text('reject wager').appendTo(wager_controls_div);
 
             wager_control_accept.click(function() {
               socket.emit('game control', {
@@ -72,7 +74,7 @@ block header
           var users = [];
           for (var id in msg) {
             if(msg.hasOwnProperty(id)) {
-              users.push({ 'id': id, 'name': msg[id].username });
+              users.push({ 'id': +id, 'name': msg[id].username });
             }
           }
           users.sort(function(a, b) {
@@ -84,7 +86,8 @@ block header
           });
           console.log(users);
 
-          var activeUsersList = $('ul#activeusers').empty();
+          var activeUsersList = $('ul#active-users').empty(),
+              displayedUserID = null;
 
           $.each(users, function(i) {
             var user = users[i];
@@ -95,7 +98,63 @@ block header
               .text(user.name)
               .appendTo(li)
               .click(function() {
-                console.log(user.id);
+                var userInfoDiv = $('#user-info').empty();
+                if(displayedUserID === user.id) {
+                  displayedUserID = null;
+                } else {
+                  var userName = $('<div/>').addClass('user-info-name').text(user.name).appendTo(userInfoDiv);
+
+                  if(user.id === self_id) {
+                    var userIsSelfInfo = $('<div/>').addClass('user-info-is-self')
+                      .text('you are user ' + user.id).appendTo(userInfoDiv);
+                  } else {
+                    var challengeUserDiv = $('<div/>').addClass('challenge-user').appendTo(userInfoDiv),
+
+                        challengeWhiteDiv = $('<div/>').addClass('challenge-user-block').appendTo(challengeUserDiv),
+                        challengeBlackDiv = $('<div/>').addClass('challenge-user-block').appendTo(challengeUserDiv),
+                        challengeControlsDiv = $('<div/>').addClass('challenge-user-block').appendTo(challengeUserDiv),
+                        challengeErrorsDiv = $('<div/>').addClass('challenge-error-block').hide().appendTo(challengeUserDiv),
+
+                        whiteLabel = $('<span/>').addClass('challenge-label').text('white: ').appendTo(challengeWhiteDiv),
+                        blackLabel = $('<span/>').addClass('challenge-label').text('black: ').appendTo(challengeBlackDiv),
+
+                        whiteRadio = $('<input type="radio" name="piece-color"/>').addClass('challenge-radio')
+                          .val('white').appendTo(challengeWhiteDiv),
+                        blackRadio = $('<input type="radio" name="piece-color"/>').addClass('challenge-radio')
+                          .val('black').appendTo(challengeBlackDiv),
+
+                        whiteWager = $('<input type="text"/>').addClass('challenge-wager').appendTo(challengeWhiteDiv),
+                        blackWager = $('<input type="text"/>').addClass('challenge-wager').appendTo(challengeBlackDiv),
+
+                        sendChallenge = $('<button/>').addClass('challenge-send').text('send').appendTo(challengeControlsDiv),
+                        cancelChallenge = $('<button/>').addClass('challenge-cancel').text('cancel').appendTo(challengeControlsDiv);
+
+                    sendChallenge.click(function() {
+                      var color = $('input[name=piece-color]:checked').val(),
+                          whiteWagerValue = whiteWager.val(),
+                          blackWagerValue = blackWager.val();
+
+                      if(color !== 'white' && color !== 'black') {
+                        challengeErrorsDiv.text('you must select your color').show();
+                      } else if(isNaN(whiteWagerValue) || +whiteWagerValue !== Math.floor(+whiteWagerValue)) {
+                        challengeErrorsDiv.text("white's wager must be an integer").show();
+                      } else if(isNaN(blackWagerValue) || +blackWagerValue !== Math.floor(+blackWagerValue)) {
+                        challengeErrorsDiv.text("black's wager must be an integer").show();
+                      } else {
+                        challengeErrorsDiv.hide();
+                        console.log(self_id);
+                        console.log(user.id);
+                      }
+                    });
+
+                    cancelChallenge.click(function() {
+                      userInfoDiv.empty();
+                      displayedUserID = null;
+                    });
+                  }
+
+                  displayedUserID = user.id;
+                }
               });
           });
         });
@@ -141,6 +200,7 @@ block header
 
 block content
   h1= title
-  ul#activeusers.userlist
+  ul#active-users.userlist
+  #user-info
   #games
 
