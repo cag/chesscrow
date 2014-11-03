@@ -1,5 +1,5 @@
 var bcrypt = require('bcrypt');
-var blockCypher = require('./block_cypher');
+var blockCypher = require('./block-cypher');
 
 var knex = require('knex')({
     client: 'pg',
