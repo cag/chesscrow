@@ -1,7 +1,5 @@
 var bcrypt = require('bcrypt');
-var chessjs = require('chess.js');
 var blockCypher = require('./block_cypher');
-
 
 var knex = require('knex')({
     client: 'pg',
@@ -23,7 +21,7 @@ var bodyParser = require('body-parser');
 
 // set up models
 var User = require('./models/user')(bookshelf),
-    Game = require('./models/game')(bookshelf, chessjs, blockCypher);
+    Game = require('./models/game')(bookshelf, blockCypher);
 
 // set up routes
 var routes = require('./routes/index')(User);

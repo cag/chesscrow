@@ -76,42 +76,41 @@ io.on('connection', function(socket) {
         new User({ id: session.passport.user }).fetch({
             withRelated: [
                 'games_as_white.white_player', 'games_as_white.black_player',
-                'games_as_black.white_player', 'games_as_black.black_player']
+                'games_as_black.white_player', 'games_as_black.black_player'
+            ]
         }).then(function(user) {
             if(user) {
                 var games_as_white = user.related('games_as_white'),
                     games_as_black = user.related('games_as_black');
 
                 function registerUserInGameRoom(game) {
-                    socket.join('game ' + game.id);
+                    if(game.get('active'))
+                        socket.join('game ' + game.id);
                 }
 
                 games_as_white.each(registerUserInGameRoom);
                 games_as_black.each(registerUserInGameRoom);
 
                 function filterGameFields(game, is_white) {
-                    var escrow_obj = game.get(is_white ? 'white_escrow' : 'black_escrow'),
-                        wager_set = game.get('wager_set'),
-                        ret = {
-                            id: game.id,
-                            white_id: game.get('white_id'),
-                            black_id: game.get('black_id'),
-                            white_username: game.related('white_player').get('username'),
-                            black_username: game.related('black_player').get('username'),
-                            white_wager: game.get('white_wager'),
-                            black_wager: game.get('black_wager'),
-                            pgn: game.get('pgn'),
-                            white_wager_lock: game.get('white_wager_lock'),
-                            black_wager_lock: game.get('black_wager_lock'),
-                            wager_set: wager_set,
-                            active: game.get('active'),
-                            is_white: is_white
-                        };
-
-                    if(wager_set) {
-                        ret.escrow_addr = escrow_obj.address;
-                    }
-                    return ret;
+                    var white_wager_accepted = game.get('white_wager_accepted'),
+                        black_wager_accepted = game.get('black_wager_accepted'),
+                        escrow_obj = game.get(is_white ? 'white_escrow' : 'black_escrow');
+                    
+                    return {
+                        id: game.id,
+                        white_id: game.get('white_id'),
+                        black_id: game.get('black_id'),
+                        white_username: game.related('white_player').get('username'),
+                        black_username: game.related('black_player').get('username'),
+                        white_wager: game.get('white_wager'),
+                        black_wager: game.get('black_wager'),
+                        white_wager_accepted: white_wager_accepted,
+                        black_wager_accepted: black_wager_accepted,
+                        pgn: game.get('pgn'),
+                        active: game.get('active'),
+                        is_white: is_white,
+                        escrow_addr: escrow_obj.address,
+                    };
                 }
 
                 (function() {
@@ -154,41 +153,23 @@ io.on('connection', function(socket) {
                 socket.on('game control', function(msg) {
                     debug('game control: ' + JSON.stringify(msg));
 
-                    new Game({ id: msg.game_id }).fetch().then(function(game) {
+                    new Game({ id: msg.game_id, active: true }).fetch().then(function(game) {
                         if(game) {
                             var channel = io.to('game ' + msg.game_id);
-                            if(!game.get('wager_set')) {
-                                if(msg.type === 'set wager' && game.get('white_wager_lock') && game.get('black_wager_lock')) {
-                                    game.save({ wager_set: true }).then(function() {
-                                        channel.emit('update game', { game_id: game.id, wager_set: true });
+                            if(msg.type === 'accept wager') {
+                                if(game.get('white_id') === user.id) {
+                                    game.save({ white_wager_accepted: true }).then(function() {
+                                        channel.emit('update game', { game_id: game.id, white_wager_accepted: true });
                                     });
-                                } else if(game.get('white_id') === user.id) {
-                                    if(msg.type === 'update wager') {
-                                        if(!game.get('white_wager_lock')) {
-                                            game.save({ white_wager: msg.new_val }).then(function() {
-                                                channel.emit('update game', { game_id: game.id, white_wager: msg.new_val });
-                                            });
-                                        }
-                                    } else if(msg.type === 'wager lock toggle') {
-                                        var new_lock_state = !game.get('white_wager_lock');
-                                        game.save({ white_wager_lock: new_lock_state }).then(function() {
-                                            channel.emit('update game', { game_id: game.id, white_wager_lock: new_lock_state });
-                                        });
-                                    }
                                 } else if(game.get('black_id') === user.id) {
-                                    if(msg.type === 'update wager') {
-                                        if(!game.get('black_wager_lock')) {
-                                            game.save({ black_wager: msg.new_val }).then(function() {
-                                                channel.emit('update game', { game_id: game.id, black_wager: msg.new_val });
-                                            });
-                                        }
-                                    } else if(msg.type === 'wager lock toggle') {
-                                        var new_lock_state = !game.get('black_wager_lock');
-                                        game.save({ black_wager_lock: new_lock_state }).then(function() {
-                                            channel.emit('update game', { game_id: game.id, black_wager_lock: new_lock_state });
-                                        });
-                                    }
+                                    game.save({ black_wager_accepted: true }).then(function() {
+                                        channel.emit('update game', { game_id: game.id, black_wager_accepted: true });
+                                    });
                                 }
+                            } else if(msg.type === 'reject wager') {
+                                game.save({ active: false }).then(function() {
+                                    channel.emit('destroy game', { game_id: game.id });
+                                });
                             }
                         }
                     });

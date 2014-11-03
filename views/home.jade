@@ -15,63 +15,44 @@ block header
           var white_wager_div = $('<div/>').addClass('white-wager-div').appendTo(wager_div),
               black_wager_div = $('<div/>').addClass('black-wager-div').appendTo(wager_div),
               white_wager_label = $('<span/>').addClass('white-wager-label').text('white: ').appendTo(white_wager_div),
-              black_wager_label = $('<span/>').addClass('black-wager-label').text('black: ').appendTo(black_wager_div);
-
-          if(game.wager_set) {
-            var white_wager = $('<span/>').addClass('white-wager').text(game.white_wager).appendTo(white_wager_div),
-                black_wager = $('<span/>').addClass('black-wager').text(game.black_wager).appendTo(black_wager_div);
-
-            if(game.active) {
-
-            } else {
-              var escrow_addr_div = $('<div/>').addClass('escrow-addr-div').appendTo(wager_div),
-                  escrow_addr_label = $('<span/>').addClass('escrow-addr-label').text('escrow address: ').appendTo(escrow_addr_div),
-                  escrow_addr = $('<span/>').addClass('escrow-addr').text(game.escrow_addr).appendTo(escrow_addr_div);
-            }
-          } else {
-            var white_wager, black_wager;
-            if(game.is_white) {
-              white_wager = $('<input type="text"/>').addClass('white-wager-edit').val(game.white_wager).appendTo(white_wager_div);
+              black_wager_label = $('<span/>').addClass('black-wager-label').text('black: ').appendTo(black_wager_div),
+              white_wager = $('<span/>').addClass('white-wager').text(game.white_wager).appendTo(white_wager_div),
               black_wager = $('<span/>').addClass('black-wager').text(game.black_wager).appendTo(black_wager_div);
-            } else {
-              white_wager = $('<span/>').addClass('white-wager').text(game.white_wager).appendTo(white_wager_div);
-              black_wager = $('<input type="text"/>').addClass('black-wager-edit').val(game.black_wager).appendTo(black_wager_div);
-            }
 
+          if(game.white_wager_accepted && game.black_wager_accepted ) {
+            var escrow_addr_div = $('<div/>').addClass('escrow-addr-div').appendTo(wager_div),
+                escrow_addr_label = $('<span/>').addClass('escrow-addr-label').text('escrow address: ').appendTo(escrow_addr_div),
+                escrow_addr = $('<span/>').addClass('escrow-addr').text(game.escrow_addr).appendTo(escrow_addr_div);
+          } else if(game.is_white && game.white_wager_accepted || !game.is_white && game.black_wager_accepted) {
+            var waiting_for_other_player_div = $('<div/>').addClass('waiting-for-player-accept-div').appendTo(wager_div),
+                waiting_for_other_player_msg = $('<span/>').addClass('waiting-for-player-accept-msg')
+                  .text('waiting for other player...').appendTo(wager_div);
+          } else {
             var wager_controls_div = $('<div/>').addClass('wager-controls-div').appendTo(wager_div),
-                wager_control_update = $('<button/>').addClass('wager-control-update').text('update wager').appendTo(wager_controls_div),
-                wager_control_lock = $('<button/>').addClass('wager-control-lock').text('wager lock toggle').appendTo(wager_controls_div),
-                wager_control_set = $('<button/>').addClass('wager-control-set').text('set wager').appendTo(wager_controls_div);
+                wager_control_accept = $('<button/>').addClass('wager-control-accept').text('accept wager').appendTo(wager_controls_div),
+                wager_control_reject = $('<button/>').addClass('wager-control-reject').text('reject wager').appendTo(wager_controls_div);
 
-            wager_control_update.click(function() {
+            wager_control_accept.click(function() {
               socket.emit('game control', {
                 game_id: game.id,
-                type: 'update wager',
-                new_val: game.is_white ? white_wager.val() : black_wager.val() });
+                type: 'accept wager' });
             });
 
-            wager_control_lock.click(function() {
+            wager_control_reject.click(function() {
               socket.emit('game control', {
                 game_id: game.id,
-                type: 'wager lock toggle' });
-            });
-
-            wager_control_set.click(function() {
-              socket.emit('game control', {
-                game_id: game.id,
-                type: 'set wager' });
+                type: 'reject wager' });
             });
           }
         }
 
         var self_id = init_msg.user_id,
-          games = init_msg.games,
-          game_map = {},
-          game_divs = {},
-          wager_divs = {};
+            game_map = {},
+            game_divs = {},
+            wager_divs = {};
 
-        $.each(games, function(i) {
-          var game = games[i];
+        $.each(init_msg.games, function(i) {
+          var game = init_msg.games[i];
           var game_div = $('<div/>').addClass('game-div');
           var title_div = $('<div/>').addClass('title-div').appendTo(game_div),
               white_span = $('<span/>').addClass('white-span').text(game.white_username).appendTo(title_div),
@@ -110,7 +91,7 @@ block header
             var li = $('<li/>')
               .appendTo(activeUsersList);
             var userLink = $('<button/>')
-              .addClass('userbutton')
+              .addClass('user-button')
               .text(user.name)
               .appendTo(li)
               .click(function() {
@@ -125,7 +106,7 @@ block header
               game_div = game_divs[msg.game_id],
               wager_div = wager_divs[msg.game_id];
           if(game_div) {
-            var wager_fields = ['wager_set', 'white_wager', 'white_wager_lock', 'black_wager', 'black_wager_lock'];
+            var wager_fields = ['white_wager_accepted', 'black_wager_accepted'];
 
             for(var i = 0; i < wager_fields.length; ++i) {
               var wager_field = wager_fields[i];
@@ -134,6 +115,23 @@ block header
                 refreshWagerDiv(wager_div, game);
               }
             }
+          }
+        });
+
+        socket.on('destroy game', function(msg) {
+          console.log(msg);
+          var game_div = game_divs[msg.game_id];
+          if(game_div) {
+            game_div.empty();
+            $('<span/>').addClass('rejection-notify').text('game has been rejected').appendTo(game_div);
+
+            setTimeout(function() {
+              game_div.remove();
+
+              delete games[msg.game_id];
+              delete game_divs[msg.game_id];
+              delete wager_divs[msg.game_id];
+            }, 2000);
           }
         });
 

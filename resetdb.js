@@ -1,4 +1,5 @@
 var debug = require('debug')('chesscrow');
+var chessjs = require('chess.js');
 var bcrypt = require('bcrypt');
 
 module.exports = function(knex, User, Game) {
@@ -25,14 +26,16 @@ module.exports = function(knex, User, Game) {
         t.increments();
         t.integer('white_id');
         t.integer('black_id');
-        t.integer('white_wager');
-        t.integer('black_wager');
+        t.integer('white_wager').defaultTo(0);
+        t.integer('black_wager').defaultTo(0);
         t.json('white_escrow');
         t.json('black_escrow');
-        t.text('pgn');
-        t.boolean('white_wager_lock');
-        t.boolean('black_wager_lock');
-        t.boolean('wager_set');
+        t.boolean('white_wager_accepted').defaultTo(false);
+        t.boolean('black_wager_accepted').defaultTo(false);
+        t.boolean('white_wager_funded').defaultTo(false);
+        t.boolean('black_wager_funded').defaultTo(false);
+        t.integer('game_state').defaultTo(Game.states.NOT_STARTED);
+        t.text('pgn').defaultTo(chessjs.Chess().pgn());
         t.boolean('active');
         t.timestamps();
     }).then(function() {

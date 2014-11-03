@@ -1,4 +1,4 @@
-module.exports = function(bookshelf, chessjs, blockCypher) {
+module.exports = function(bookshelf, blockCypher) {
     
     var User = bookshelf.model('User');
 
@@ -23,6 +23,14 @@ module.exports = function(bookshelf, chessjs, blockCypher) {
 
     }, {
 
+        states: {
+            NOT_STARTED: 0,
+            GOING: 1,
+            WHITE_WIN: 2,
+            BLACK_WIN: 3,
+            STALEMATE: 4,
+        },
+
         create: function(white_id, black_id, callback) {
             new User({ id: white_id }).fetch().then(function(white) {
                 if(white) {
@@ -37,15 +45,9 @@ module.exports = function(bookshelf, chessjs, blockCypher) {
                     new Game({
                         white_id: white_id,
                         black_id: black_id,
-                        white_wager: 0,
-                        black_wager: 0,
                         white_escrow: white_escrow,
                         black_escrow: black_escrow,
-                        pgn: chessjs.Chess().pgn(),
-                        white_wager_lock: false,
-                        black_wager_lock: false,
-                        wager_set: false,
-                        active: false })
+                        active: true })
                     .save()
                     .then(function(game) {
                         if(callback) callback(null, game);
