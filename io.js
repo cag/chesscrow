@@ -151,7 +151,11 @@ io.on('connection', function(socket) {
                         if(game) {
                             var channel = io.to('game ' + msg.game_id);
                             if(!game.get('wager_set')) {
-                                if(game.get('white_id') === user.id) {
+                                if(msg.type === 'set wager' && game.get('white_wager_lock') && game.get('black_wager_lock')) {
+                                    game.save({ wager_set: true }).then(function() {
+                                        channel.emit('update game div', { game_id: game.id, wager_set: true });
+                                    });
+                                } else if(game.get('white_id') === user.id) {
                                     if(msg.type === 'update wager') {
                                         if(!game.get('white_wager_lock')) {
                                             game.save({ white_wager: msg.new_val }).then(function() {
@@ -159,8 +163,9 @@ io.on('connection', function(socket) {
                                             });
                                         }
                                     } else if(msg.type === 'wager lock toggle') {
-                                        game.save({ white_wager_lock: !game.get('white_wager_lock') }).then(function() {
-                                            channel.emit('update game div', { game_id: game.id, white_wager_lock: game.get('white_wager_lock') });
+                                        var new_lock_state = !game.get('white_wager_lock');
+                                        game.save({ white_wager_lock: new_lock_state }).then(function() {
+                                            channel.emit('update game div', { game_id: game.id, white_wager_lock: new_lock_state });
                                         });
                                     }
                                 } else if(game.get('black_id') === user.id) {
@@ -171,15 +176,11 @@ io.on('connection', function(socket) {
                                             });
                                         }
                                     } else if(msg.type === 'wager lock toggle') {
-                                        game.save({ black_wager_lock: !game.get('black_wager_lock') }).then(function() {
-                                            channel.emit('update game div', { game_id: game.id, black_wager_lock: game.get('black_wager_lock') });
+                                        var new_lock_state = !game.get('black_wager_lock');
+                                        game.save({ black_wager_lock: new_lock_state }).then(function() {
+                                            channel.emit('update game div', { game_id: game.id, black_wager_lock: new_lock_state });
                                         });
                                     }
-
-                                } else if(msg.type === 'set wager' && game.get('white_wager_lock') && game.get('black_wager_lock')) {
-                                    game.save({ wager_set: true }).then(function() {
-                                        channel.emit('update game div', { game_id: game.id, wager_set: true });
-                                    });
                                 }
                             }
                         }
