@@ -1,6 +1,6 @@
 var bcrypt = require('bcrypt');
 
-module.exports = function(bookshelf, Game) {
+module.exports = function(bookshelf) {
 
     var User = bookshelf.Model.extend({
 
@@ -10,8 +10,8 @@ module.exports = function(bookshelf, Game) {
             bcrypt.compare(password, this.get('password_hash'), callback);
         },
 
-        games_as_white: function() { return this.hasMany(Game, 'white_id'); },
-        games_as_black: function() { return this.hasMany(Game, 'black_id'); },
+        games_as_white: function() { return this.hasMany('Game', 'white_id'); },
+        games_as_black: function() { return this.hasMany('Game', 'black_id'); },
 
     }, {
 
@@ -27,6 +27,6 @@ module.exports = function(bookshelf, Game) {
 
     });
 
-    return User;
+    return bookshelf.model('User', User);
 
 };

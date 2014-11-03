@@ -7,7 +7,8 @@ var knex = require('knex')({
     client: 'pg',
     connection: process.env.DATABASE_URL
 });
-var bookshelf = require('bookshelf')(knex);
+var bookshelf = require('bookshelf')(knex),
+    bookshelfRegistry = bookshelf.plugin('registry');
 
 var express = require('express');
 var session = require('express-session'),
@@ -21,8 +22,8 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 
 // set up models
-var Game = require('./models/game')(bookshelf, chessjs, blockCypher),
-    User = require('./models/user')(bookshelf, Game);
+var User = require('./models/user')(bookshelf),
+    Game = require('./models/game')(bookshelf, chessjs, blockCypher);
 
 // set up routes
 var routes = require('./routes/index')(User);

@@ -10,16 +10,9 @@ block header
       socket.on('linked session to user', function(init_msg) {
         console.log(init_msg);
 
-        function refreshGameDiv(game_div, game) {
-          game_div.empty();
-
-          var title_div = $('<div/>').addClass('title-div').appendTo(game_div),
-              white_span = $('<span/>').addClass('white-span').text(game.white_id).appendTo(title_div),
-              vs_span = $('<span/>').addClass('vs-span').text(' vs ').appendTo(title_div),
-              black_span = $('<span/>').addClass('black-span').text(game.black_id).appendTo(title_div);
-
-          var wager_div = $('<div/>').addClass('wager-div').appendTo(game_div),
-              white_wager_div = $('<div/>').addClass('white-wager-div').appendTo(wager_div),
+        function refreshWagerDiv(wager_div, game) {
+          wager_div.empty();
+          var white_wager_div = $('<div/>').addClass('white-wager-div').appendTo(wager_div),
               black_wager_div = $('<div/>').addClass('black-wager-div').appendTo(wager_div),
               white_wager_label = $('<span/>').addClass('white-wager-label').text('white: ').appendTo(white_wager_div),
               black_wager_label = $('<span/>').addClass('black-wager-label').text('black: ').appendTo(black_wager_div);
@@ -73,14 +66,25 @@ block header
 
         var self_id = init_msg.user_id,
           games = init_msg.games,
-          game_divs = {};
-          $.each(games, function(i) {
-            var game = games[i];
-            var game_div = $('<div/>').addClass('game-div');
-            refreshGameDiv(game_div, game);
-            game_div.appendTo($('#games'));
-            game_divs[game.id] = game_div;
-          });
+          game_map = {},
+          game_divs = {},
+          wager_divs = {};
+
+        $.each(games, function(i) {
+          var game = games[i];
+          var game_div = $('<div/>').addClass('game-div');
+          var title_div = $('<div/>').addClass('title-div').appendTo(game_div),
+              white_span = $('<span/>').addClass('white-span').text(game.white_username).appendTo(title_div),
+              vs_span = $('<span/>').addClass('vs-span').text(' vs ').appendTo(title_div),
+              black_span = $('<span/>').addClass('black-span').text(game.black_username).appendTo(title_div);
+
+          var wager_div = $('<div/>').addClass('wager-div').appendTo(game_div);
+          refreshWagerDiv(wager_div, game);
+          game_div.appendTo($('#games'));
+          game_map[game.id] = game;
+          game_divs[game.id] = game_div;
+          wager_divs[game.id] = wager_div;
+        });
 
         socket.on('active users update', function(msg) {
           console.log(msg);
@@ -115,8 +119,22 @@ block header
           });
         });
 
-        socket.on('update game div', function(msg) {
+        socket.on('update game', function(msg) {
           console.log(msg);
+          var game = game_map[msg.game_id],
+              game_div = game_divs[msg.game_id],
+              wager_div = wager_divs[msg.game_id];
+          if(game_div) {
+            var wager_fields = ['wager_set', 'white_wager', 'white_wager_lock', 'black_wager', 'black_wager_lock'];
+
+            for(var i = 0; i < wager_fields.length; ++i) {
+              var wager_field = wager_fields[i];
+              if(wager_field in msg) {
+                game[wager_field] = msg[wager_field];
+                refreshWagerDiv(wager_div, game);
+              }
+            }
+          }
         });
 
         socket.emit('user activated', true);

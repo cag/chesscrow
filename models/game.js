@@ -1,6 +1,9 @@
 module.exports = function(bookshelf, chessjs, blockCypher) {
     
+    var User = bookshelf.model('User');
+
     var Game = bookshelf.Model.extend({
+
         tableName: 'games',
 
         setWager: function(callback) {
@@ -14,13 +17,17 @@ module.exports = function(bookshelf, chessjs, blockCypher) {
                 });
             }
         },
+
+        white_player: function() { return this.belongsTo(User, 'white_id'); },
+        black_player: function() { return this.belongsTo(User, 'black_id'); },
+
     }, {
 
         create: function(white_id, black_id, callback) {
-            // new User({ id: white_id }).fetch().then(function(white) {
-            //     if(white) {
-            // new User({ id: black_id }).fetch().then(function(black) {
-            //     if(black) {
+            new User({ id: white_id }).fetch().then(function(white) {
+                if(white) {
+            new User({ id: black_id }).fetch().then(function(black) {
+                if(black) {
             blockCypher.createAddress(function(err, white_escrow) {
                 if(err && callback) callback('error while creating white escrow: ' + err);
                 else {
@@ -47,17 +54,17 @@ module.exports = function(bookshelf, chessjs, blockCypher) {
             });
                 }
             });
-            //     } else {
-            //         if(callback) callback('could not find user ' + black_id + ' for black');
-            //     }
-            // });
-            //     } else {
-            //         if(callback) callback('could not find user ' + white_id + ' for white');
-            //     }
-            // });
+                } else {
+                    if(callback) callback('could not find user ' + black_id + ' for black');
+                }
+            });
+                } else {
+                    if(callback) callback('could not find user ' + white_id + ' for white');
+                }
+            });
         }
 
     });
 
-    return Game;
+    return bookshelf.model('Game', Game);
 };

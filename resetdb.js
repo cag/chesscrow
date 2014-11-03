@@ -16,6 +16,7 @@ module.exports = function(knex, User, Game) {
     User.register('alan', 'bacon', function() {
 
     User.register('foo', 'bar', function() {
+
     debug('initialized users table');
 
     knex.schema.dropTableIfExists('games').then(function() {
@@ -39,6 +40,7 @@ module.exports = function(knex, User, Game) {
     Game.create(1, 2, function() {
 
     Game.create(2, 1);
+
     debug('initialized games table');
 
     }); }); }); }); }); }); });
